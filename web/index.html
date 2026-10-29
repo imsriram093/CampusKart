@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusKart | Escrow Marketplace Console</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="ambientCanvas" class="ambient-canvas"></canvas>
+  <div class="film-grain-overlay" aria-hidden="true"></div>
+  <div class="vignette-overlay" aria-hidden="true"></div>
+
+  <div class="app-layout">
+
+    <!-- ============================== HEADER ============================== -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-cluster">
+          <div class="logo-mark" aria-hidden="true"><span class="mark-reticle"></span><span class="mark-dot"></span></div>
+          <div class="title-cluster">
+            <h1 class="project-title">CAMPUSKART</h1>
+            <span class="project-subtitle">Escrow-Protected Campus Resale Engine</span>
+          </div>
+        </div>
+        <div class="header-meta">
+          <span class="meta-chip hud-chip-live"><span class="status-pip"></span>[ LIVE ]</span>
+          <span class="meta-chip db-chip" id="dbChip"><span class="status-pip"></span><span id="dbLabel">CONNECTING…</span></span>
+          <span class="meta-chip version-chip">PL/SQL // ESCROW LEDGER</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <nav class="nav-tabs" role="tablist" aria-label="Main navigation">
+          <button class="tab-btn active" role="tab" aria-selected="true" data-tab="market"><span class="tab-index">01</span> Market</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="orders"><span class="tab-index">02</span> Orders <span class="tab-badge hidden" id="disputeBadge">0</span></button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="trace"><span class="tab-index">03</span> Trace</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="ledger"><span class="tab-index">04</span> Ledger</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="reports"><span class="tab-index">05</span> Reports</button>
+        </nav>
+        <button id="themeToggle" class="icon-btn" title="Toggle light/dark theme" aria-label="Toggle theme">
+          <svg class="sun-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ========================== SESSION STRIP =========================== -->
+    <section class="session-strip" aria-label="Acting user and platform totals">
+      <div class="session-left">
+        <span class="session-label">ACTING AS</span>
+        <select id="actorSelect" class="form-select actor-select" aria-label="Acting user"></select>
+        <span class="pill" id="actorRole">—</span>
+        <span class="meta-chip" title="Wallet balance (USERS.WALLET_BALANCE)">WALLET <b class="monospace color-accent" id="actorWallet">—</b></span>
+        <span class="meta-chip" title="SELLER_TRUST_SCORE(user_id)">TRUST <b class="monospace" id="actorTrust">—</b></span>
+        <span class="pill tone-fail hidden" id="actorBlocked">BLOCKED</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-chip"><span class="kpi-lbl">Active listings</span><span class="kpi-val" id="kpiListings">—</span></div>
+        <div class="kpi-chip"><span class="kpi-lbl">Pending offers</span><span class="kpi-val" id="kpiOffers">—</span></div>
+        <div class="kpi-chip"><span class="kpi-lbl">Open orders</span><span class="kpi-val" id="kpiOrders">—</span></div>
+        <div class="kpi-chip"><span class="kpi-lbl">In escrow</span><span class="kpi-val accent" id="kpiEscrow">—</span></div>
+        <div class="kpi-chip"><span class="kpi-lbl">Open disputes</span><span class="kpi-val warn" id="kpiDisputes">—</span></div>
+        <div class="kpi-chip"><span class="kpi-lbl">Fee revenue</span><span class="kpi-val" id="kpiRevenue">—</span></div>
+      </div>
+    </section>
+
+    <div id="systemNotification" class="system-notification hidden" role="status">
+      <span id="notificationMessage"></span>
+      <span class="notif-actions">
+        <button class="btn btn-ghost btn-xs hidden" id="notifTraceBtn">Open trace →</button>
+        <button class="close-notif-btn" id="closeNotifBtn" aria-label="Dismiss">&times;</button>
+      </span>
+    </div>
+
+    <main class="view-viewport">
+
+      <!-- ============================ 01 MARKET ============================ -->
+      <section id="view-market" class="view-panel active" role="tabpanel">
+        <div class="two-col">
+          <div class="panel-column">
+            <div class="card">
+              <div class="card-header row" data-depth="1">
+                <div class="card-header">
+                  <span class="card-tag">CATALOGUE // Q1 + Q2 + Q3 PARAMETERISED</span>
+                  <h2 class="card-title">Campus Listings <span class="terminal-caret" aria-hidden="true">_</span></h2>
+                </div>
+                <span class="meta-chip" id="listingCount">0 ROWS</span>
+              </div>
+              <div class="card-body" data-depth="2">
+                <div class="filter-bar">
+                  <input id="fSearch" class="form-input" type="search" placeholder="Search title (UPPER … LIKE)" aria-label="Search">
+                  <select id="fCategory" class="form-select" aria-label="Category"><option value="">All categories</option></select>
+                  <select id="fCondition" class="form-select" aria-label="Condition">
+                    <option value="">Any condition</option><option>NEW</option><option>LIKE_NEW</option><option>GOOD</option><option>FAIR</option>
+                  </select>
+                  <input id="fMax" class="form-input mono" type="number" min="1" placeholder="Max ₹" aria-label="Maximum price">
+                  <select id="fStatus" class="form-select" aria-label="Status">
+                    <option value="ACTIVE">ACTIVE</option><option value="RESERVED">RESERVED</option><option value="SOLD">SOLD</option><option value="WITHDRAWN">WITHDRAWN</option><option value="ALL">ALL</option>
+                  </select>
+                </div>
+                <div class="listing-grid" id="listingGrid"></div>
+                <details class="sql-peek">
+                  <summary>Show the SELECT this catalogue just executed</summary>
+                  <pre class="code-block" id="catalogSql"></pre>
+                </details>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-column">
+            <div class="card" id="listingDetailCard">
+              <div class="card-header" data-depth="1">
+                <span class="card-tag" id="detailTag">LISTING DETAIL</span>
+                <h2 class="card-title" id="detailTitle">Select a listing</h2>
+              </div>
+              <div class="card-body" id="detailBody" data-depth="2">
+                <p class="empty-note">Pick any tile on the left. Offers, the platform fee from <code>CALC_PLATFORM_FEE</code> and the seller's trust score load from the database.</p>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header" data-depth="1">
+                <span class="card-tag">T1 // INSERT → TRG_VALIDATE_LISTING</span>
+                <h2 class="card-title">Sell an Item</h2>
+              </div>
+              <div class="card-body" data-depth="2">
+                <div class="field-group"><label class="field-label" for="nlTitle">Title</label><input id="nlTitle" class="form-input" maxlength="100" placeholder="e.g. Signals and Systems - Oppenheim"></div>
+                <div class="field-row">
+                  <div class="field-group"><label class="field-label" for="nlCategory">Category</label><select id="nlCategory" class="form-select"></select></div>
+                  <div class="field-group"><label class="field-label" for="nlCondition">Condition</label>
+                    <select id="nlCondition" class="form-select"><option>NEW</option><option>LIKE_NEW</option><option selected>GOOD</option><option>FAIR</option></select></div>
+                  <div class="field-group"><label class="field-label" for="nlPrice">Asking ₹</label><input id="nlPrice" class="form-input mono" type="number" step="1" placeholder="450"></div>
+                </div>
+                <div class="field-group"><label class="field-label" for="nlDesc">Description</label><textarea id="nlDesc" class="form-textarea" maxlength="500" placeholder="Condition notes, what is included…"></textarea></div>
+                <button class="btn btn-primary" id="createListingBtn">Publish listing</button>
+                <p class="hint">Runs as the acting user. Try a negative price (<code>CHK_LISTING_PRICE</code>) or act as the blocked student Nikhil (<code>ORA-20005</code>).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================ 02 ORDERS ============================ -->
+      <section id="view-orders" class="view-panel" role="tabpanel">
+        <div class="two-col even">
+          <div class="panel-column">
+            <div class="card">
+              <div class="card-header row" data-depth="1">
+                <div class="card-header">
+                  <span class="card-tag">ORDER_DETAILS_V // AS BUYER AND SELLER</span>
+                  <h2 class="card-title">My Orders</h2>
+                </div>
+                <span class="meta-chip" id="orderCount">0</span>
+              </div>
+              <div class="order-list" id="orderList" data-depth="2"></div>
+            </div>
+          </div>
+
+          <div class="panel-column">
+            <div class="card">
+              <div class="card-header" data-depth="1">
+                <span class="card-tag">ESCROW LIFECYCLE // CLICK A STAGE</span>
+                <h2 class="card-title" id="stageTitle">Five-Stage Escrow Pipeline</h2>
+              </div>
+              <div class="iso-stack-container" data-depth="2">
+                <div class="iso-stack" id="isoStack">
+                  <div class="iso-slab" data-stage="1"><span class="slab-num">01</span><span class="slab-title">Listing</span><span class="slab-count" id="slabCount1"></span></div>
+                  <div class="iso-slab" data-stage="2"><span class="slab-num">02</span><span class="slab-title">Offer</span><span class="slab-count" id="slabCount2"></span></div>
+                  <div class="iso-slab" data-stage="3"><span class="slab-num">03</span><span class="slab-title">Escrow Hold</span><span class="slab-count" id="slabCount3"></span></div>
+                  <div class="iso-slab" data-stage="4"><span class="slab-num">04</span><span class="slab-title">Handover</span><span class="slab-count" id="slabCount4"></span></div>
+                  <div class="iso-slab active" data-stage="5"><span class="slab-num">05</span><span class="slab-title">Settlement</span><span class="slab-count" id="slabCount5"></span></div>
+                </div>
+              </div>
+              <div class="card-body" id="stageInspector"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header row" data-depth="1">
+                <div class="card-header">
+                  <span class="card-tag">ADMIN DESK // Q17 + RESOLVE_DISPUTE</span>
+                  <h2 class="card-title">Open Disputes</h2>
+                </div>
+                <span class="hint">Buttons run as the acting user: a student gets ORA-20030.</span>
+              </div>
+              <div class="card-body" id="disputeDesk" data-depth="2"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header row" data-depth="1">
+                <div class="card-header">
+                  <span class="card-tag">BATCH // AUTO_RELEASE_ESCROW (EXPLICIT CURSOR)</span>
+                  <h2 class="card-title">Escrow Release Queue</h2>
+                </div>
+                <button class="btn btn-primary btn-sm" id="runBatchBtn">Run batch job</button>
+              </div>
+              <div class="card-body" id="releaseQueue" data-depth="2"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header" data-depth="1">
+                <span class="card-tag">ACCOUNT // UPDATE USERS</span>
+                <h2 class="card-title">Wallet &amp; Moderation</h2>
+              </div>
+              <div class="card-body" data-depth="2">
+                <div class="action-box">
+                  <span class="action-title">Top up acting user's wallet</span>
+                  <div class="inline-form"><input id="topupAmount" class="form-input mono" type="number" min="1" value="1000"><button class="btn btn-secondary btn-sm" id="topupBtn">Top up</button></div>
+                </div>
+                <div class="action-box">
+                  <span class="action-title">Block / unblock a student (admin only)</span>
+                  <div class="inline-form">
+                    <select id="blockUser" class="form-select"></select>
+                    <button class="btn btn-danger btn-sm" id="blockBtn">Block</button>
+                    <button class="btn btn-ghost btn-sm" id="unblockBtn">Unblock</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================ 03 TRACE ============================= -->
+      <section id="view-trace" class="view-panel" role="tabpanel">
+        <div class="view-hero">
+          <div>
+            <span class="card-tag">USER OPERATION → SQL / PL-SQL → DATABASE PROCESSING → UPDATE / RETRIEVAL → RESULT</span>
+            <h2 class="view-heading">Transaction Trace Console</h2>
+            <p class="view-sub">Every transaction answers the five questions of the project guidelines. The "effect" tables are read back from the database just before and just after the call.</p>
+          </div>
+        </div>
+        <div class="two-col trace">
+          <div class="panel-column">
+            <div class="card">
+              <div class="card-header" data-depth="1">
+                <span class="card-tag">REVIEW III // VIVA SCRIPT</span>
+                <h2 class="card-title">Demonstration Transactions</h2>
+              </div>
+              <div class="card-body" data-depth="2">
+                <div class="inline-form">
+                  <button class="btn btn-primary btn-sm" id="autopilotBtn">Reset &amp; run all</button>
+                  <button class="btn btn-ghost btn-sm" id="resetBtn">Reset database</button>
+                </div>
+                <p class="hint">Run in order from a fresh database. Green = expected COMMIT, red = a rule must ROLLBACK, blue = report.</p>
+                <div class="presets-section" id="presetList"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header row" data-depth="1">
+                <div class="card-header"><span class="card-tag">SESSION LOG</span><h2 class="card-title">Transaction History</h2></div>
+                <span class="meta-chip" id="historyCount">0</span>
+              </div>
+              <div class="history-list" id="historyList" data-depth="2"></div>
+            </div>
+          </div>
+
+          <div class="panel-column">
+            <div class="verdict-card" id="verdictCard">
+              <div class="scanline-sweep" id="scanlineSweep" aria-hidden="true"></div>
+              <div class="standby" id="verdictStandby">
+                <span class="standby-reticle"></span>
+                <h3 class="standby-title">ESCROW ENGINE AWAITING TRANSACTION</h3>
+                <p class="standby-sub">Run a demonstration transaction, or use any button in Market / Orders.</p>
+              </div>
+              <div class="hidden" id="verdictBody">
+                <div class="verdict-head">
+                  <span class="verdict-badge" id="verdictBadge">COMMIT</span>
+                  <div class="verdict-meta">
+                    <span class="meta-chip" id="verdictId">TX #—</span>
+                    <span class="meta-chip" id="verdictActor">—</span>
+                    <span class="meta-chip" id="verdictTime">— ms</span>
+                  </div>
+                </div>
+                <div class="verdict-title" id="verdictTitle">—</div>
+                <div class="stage-rail" id="stageRail"></div>
+                <div class="error-box hidden" id="verdictError"></div>
+                <div class="verdict-explanation-box" id="verdictResult">—</div>
+              </div>
+            </div>
+
+            <div class="card hidden" id="anatomyCard">
+              <div class="card-header" data-depth="1">
+                <span class="card-tag">TRANSACTION ANATOMY // FIVE QUESTIONS</span>
+                <h2 class="card-title">What happened inside the database</h2>
+              </div>
+              <div class="q-grid" data-depth="2">
+                <div class="q-item"><span class="q-num">1</span><div class="q-body"><span class="q-title">What operation is being performed?</span><p class="op-text" id="qOperation"></p></div></div>
+                <div class="q-item"><span class="q-num">2</span><div class="q-body"><span class="q-title">Which tables are involved?</span><div class="chip-row" id="qTables"></div></div></div>
+                <div class="q-item"><span class="q-num">3</span><div class="q-body"><span class="q-title">Which SQL / PL-SQL component is executed?</span><div class="comp-list" id="qComponents"></div><pre class="code-block" id="qSql"></pre></div></div>
+                <div class="q-item"><span class="q-num">4</span><div class="q-body"><span class="q-title">How is the database affected? (before → after)</span><div class="effect-summary" id="qEffectSummary"></div><div id="qDiffs" class="q-body"></div></div></div>
+                <div class="q-item"><span class="q-num">5</span><div class="q-body"><span class="q-title">What result is generated?</span><div class="terminal" id="qOutput"></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================ 04 LEDGER ============================ -->
+      <section id="view-ledger" class="view-panel" role="tabpanel">
+        <div class="view-hero">
+          <div>
+            <span class="card-tag">ESCROW_TXNS // APPEND-ONLY MONEY LEDGER</span>
+            <h2 class="view-heading">Escrow Ledger &amp; Reconciliation</h2>
+            <p class="view-sub">Totals from query Q11, category revenue from Q6, and a per-order check that uses the Review III function <code>ESCROW_BALANCE</code>.</p>
+          </div>
+        </div>
+        <div class="panel-column">
+          <div class="kpi-grid">
+            <div class="card stat-card"><span class="card-tag">HOLD</span><span class="stat-number color-review" id="ledHeld">—</span><span class="stat-label">Total ever held</span></div>
+            <div class="card stat-card"><span class="card-tag">RELEASE</span><span class="stat-number color-pass" id="ledReleased">—</span><span class="stat-label">Released to sellers</span></div>
+            <div class="card stat-card"><span class="card-tag">REFUND</span><span class="stat-number" style="color: var(--info)" id="ledRefunded">—</span><span class="stat-label">Refunded to buyers</span></div>
+            <div class="card stat-card"><span class="card-tag">HOLD − RELEASE − REFUND</span><span class="stat-number color-accent" id="ledInEscrow">—</span><span class="stat-label">Currently in escrow</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-header" data-depth="1"><span class="card-tag">WHERE DID THE HELD MONEY GO?</span><h2 class="card-title">Escrow Depth Gauge</h2></div>
+            <div class="gauge-3d-stage" data-depth="2">
+              <div class="gauge-3d-track">
+                <div class="slab slab-release" id="gRelease"><span class="slab-label">RELEASED</span></div>
+                <div class="slab slab-refund" id="gRefund"><span class="slab-label">REFUNDED</span></div>
+                <div class="slab slab-held" id="gHeld"><span class="slab-label">IN ESCROW</span></div>
+              </div>
+            </div>
+            <div class="gauge-legend" id="gaugeLegend">—</div>
+          </div>
+
+          <div class="two-col even">
+            <div class="card">
+              <div class="card-header" data-depth="1"><span class="card-tag">Q6 // GROUP BY CATEGORY</span><h2 class="card-title">Platform Fee Revenue by Category</h2></div>
+              <div class="bar-list" id="categoryBars" data-depth="2"></div>
+            </div>
+            <div class="card">
+              <div class="card-header" data-depth="1"><span class="card-tag">R1 // ESCROW_BALANCE(order_id)</span><h2 class="card-title">Reconciliation</h2></div>
+              <div class="recon-banner" id="reconBanner"></div>
+              <div class="table-scroller"><table class="data-table"><thead><tr><th>Order</th><th>Status</th><th>Price</th><th>Held now</th><th>Should hold</th><th>Check</th></tr></thead><tbody id="reconBody"></tbody></table></div>
+            </div>
+          </div>
+
+          <div class="two-col even">
+            <div class="card">
+              <div class="card-header row" data-depth="1"><div class="card-header"><span class="card-tag">ESCROW_TXNS // NEWEST FIRST</span><h2 class="card-title">Ledger Entries</h2></div><span class="meta-chip" id="txnCount">0</span></div>
+              <div class="table-scroller tall"><table class="data-table"><thead><tr><th>Txn</th><th>Order</th><th>Type</th><th>Amount</th><th>Item</th><th>Time</th></tr></thead><tbody id="txnBody"></tbody></table></div>
+            </div>
+            <div class="card">
+              <div class="card-header" data-depth="1"><span class="card-tag">USERS.WALLET_BALANCE</span><h2 class="card-title">Wallets</h2></div>
+              <div class="table-scroller tall"><table class="data-table"><thead><tr><th>User</th><th>Name</th><th>Role</th><th>Balance</th><th>Blocked</th></tr></thead><tbody id="walletBody"></tbody></table></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================ 05 REPORTS =========================== -->
+      <section id="view-reports" class="view-panel" role="tabpanel">
+        <div class="view-hero">
+          <div>
+            <span class="card-tag">OUTPUT &amp; REPORTS</span>
+            <h2 class="view-heading">Report Console &amp; Database Objects</h2>
+            <p class="view-sub">The 20 Review II queries and the Review III reports, run live. Every PL/SQL object of the project is listed with its source.</p>
+          </div>
+        </div>
+        <div class="two-col reports">
+          <div class="panel-column">
+            <div class="card">
+              <div class="card-header" data-depth="1"><span class="card-tag">CATALOGUE</span><h2 class="card-title">Queries</h2></div>
+              <div class="report-list" id="reportList" data-depth="2"></div>
+            </div>
+          </div>
+          <div class="panel-column">
+            <div class="card">
+              <div class="card-header row" data-depth="1">
+                <div class="card-header"><span class="card-tag" id="reportConcept">—</span><h2 class="card-title" id="reportTitle">Select a query</h2></div>
+                <div class="inline-form"><span class="meta-chip" id="reportRows">0 ROWS</span><button class="btn btn-ghost btn-sm" id="copySqlBtn">Copy SQL</button></div>
+              </div>
+              <div class="card-body" data-depth="2">
+                <span class="pill tone-accent hidden" id="reportUsedBy"></span>
+                <pre class="code-block" id="reportSql"></pre>
+                <div class="table-scroller tall"><table class="data-table"><thead id="reportHead"></thead><tbody id="reportBody"></tbody></table></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header row" data-depth="1">
+                <div class="card-header"><span class="card-tag">R3 // SELLER_STATEMENT (CURSOR FOR LOOP + DBMS_OUTPUT)</span><h2 class="card-title">Seller Statement</h2></div>
+                <div class="inline-form"><select id="statementSeller" class="form-select"></select><button class="btn btn-primary btn-sm" id="statementBtn">Generate</button></div>
+              </div>
+              <div class="terminal" id="statementOut" data-depth="2"><span class="t-dim">SQL&gt; SET SERVEROUTPUT ON</span></div>
+            </div>
+            <div class="card">
+              <div class="card-header" data-depth="1"><span class="card-tag">USER_OBJECTS // CLICK FOR SOURCE</span><h2 class="card-title">PL/SQL Objects in this Application</h2></div>
+              <div class="object-grid" id="objectGrid" data-depth="2"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <div class="footer-left font-academic">
+        <span>CampusKart: Peer-to-Peer Campus Resale Marketplace with Escrow-Based Payment Protection</span>
+        <span class="footer-divider">•</span>
+        <em>Parthiban M (24BYB0135), Sriram K (24BYB0151), Vimalaadhityan (24BYB0145) — BCSE302L Database Systems, VIT Vellore</em>
+      </div>
+      <div class="footer-right"><span class="hud-mono-chip">[ SAFFRON CIRCUIT HUD // ESCROW NODE ]</span></div>
+    </footer>
+  </div>
+
+  <!-- Reset confirmation -->
+  <div id="resetModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+    <div class="modal-card">
+      <h3 class="modal-title" id="resetTitle">Rebuild the database?</h3>
+      <p class="modal-body">This re-runs <code>CampusKart_Review3.sql</code>: every table is dropped and recreated with the 198 sample rows, and all PL/SQL objects are recompiled. Changes made in this session are lost.</p>
+      <div class="modal-actions">
+        <button id="cancelResetBtn" class="btn btn-ghost">Cancel</button>
+        <button id="confirmResetBtn" class="btn btn-danger">Yes, rebuild</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Source viewer -->
+  <div id="sourceModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="sourceTitle">
+    <div class="modal-card wide">
+      <div class="card-header row"><div class="card-header"><span class="card-tag" id="sourceType">—</span><h3 class="modal-title" id="sourceTitle">—</h3></div><button class="btn btn-ghost btn-sm" id="closeSourceBtn">Close</button></div>
+      <pre class="code-block" id="sourceCode"></pre>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
