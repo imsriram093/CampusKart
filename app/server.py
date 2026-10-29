@@ -311,5 +311,5 @@ def main():
     except Exception as exc:  # noqa: BLE001
         print(f"\n[CampusKart] could not start: {exc}\n", file=sys.stderr)
         raise SystemExit(1)
-    print(f"\n  CampusKart running on http://127.0.0.1:{config.PORT}\n")
-    app.run(host="127.0.0.1", port=config.PORT, debug=False, threaded=True)
+    print(f"\n  CampusKart running on http://{config.HOST}:{config.PORT}\n")
+    app.run(host=config.HOST, port=config.PORT, debug=False, threaded=True)
